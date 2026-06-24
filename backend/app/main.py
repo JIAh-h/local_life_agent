@@ -27,8 +27,8 @@ async def lifespan(app: FastAPI):
             "DASHSCOPE_API_KEY": settings.DASHSCOPE_API_KEY,
             "XIAOMI_API_KEY": settings.XIAOMI_API_KEY,
         },
-        default_provider="aliyun",
-        default_model="deepseek-v4-flash",
+        default_provider="xiaomi",
+        default_model="mimo-v2.5-pro",
     )
     app.state.agent_llm_client = llm_client
 

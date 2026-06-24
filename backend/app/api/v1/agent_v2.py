@@ -166,12 +166,15 @@ async def agent_chat(
         }
     
     # 使用Reactor处理消息
+    model_cfg = request.model_config or DEFAULT_MODEL_CONFIG
     result = await reactor.process_message(
         user_message=request.message,
         session_id=session_id,
         user_id=user_id,
         location=location,
-        stream=False
+        stream=False,
+        provider=model_cfg.get("provider"),
+        model=model_cfg.get("model")
     )
     
     # 保存对话历史
@@ -235,12 +238,15 @@ async def agent_chat_stream(
         try:
             # 使用Reactor处理消息（流式）
             # process_message是async函数，stream=True时返回async generator，需先await
+            model_cfg = request.model_config or DEFAULT_MODEL_CONFIG
             async for event in await reactor.process_message(
                 user_message=request.message,
                 session_id=session_id,
                 user_id=user_id,
                 location=location,
-                stream=True
+                stream=True,
+                provider=model_cfg.get("provider"),
+                model=model_cfg.get("model")
             ):
                 event_type = event.get("event", "message")
                 event_data = event.get("data", {})
@@ -408,6 +414,7 @@ async def regenerate_reply(
         async def event_generator():
             """流式重新生成"""
             full_reply = ""
+            model_cfg = model_config or DEFAULT_MODEL_CONFIG
             
             try:
                 async for event in await reactor.process_message(
@@ -415,7 +422,9 @@ async def regenerate_reply(
                     session_id=session_id,
                     user_id=user_id,
                     location=location,
-                    stream=True
+                    stream=True,
+                    provider=model_cfg.get("provider"),
+                    model=model_cfg.get("model")
                 ):
                     event_type = event.get("event", "message")
                     event_data = event.get("data", {})
@@ -455,12 +464,15 @@ async def regenerate_reply(
         )
     else:
         # 非流式
+        model_cfg = model_config or DEFAULT_MODEL_CONFIG
         result = await reactor.process_message(
             user_message=user_message,
             session_id=session_id,
             user_id=user_id,
             location=location,
-            stream=False
+            stream=False,
+            provider=model_cfg.get("provider"),
+            model=model_cfg.get("model")
         )
         
         # 保存新版本

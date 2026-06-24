@@ -65,6 +65,8 @@ class Reactor:
         self.context_assembler = context_assembler or ContextAssembler()
         self.config = config or ReactorConfig()
         self.llm = llm_client
+        self._llm_provider = None  # 用户选择的provider（覆盖默认值）
+        self._llm_model = None     # 用户选择的model（覆盖默认值）
     
     async def process_message(
         self,
@@ -73,6 +75,8 @@ class Reactor:
         user_id: str = None,
         location: dict = None,
         stream: bool = False,
+        provider: str = None,
+        model: str = None,
         **kwargs
     ) -> Union[Dict[str, Any], AsyncGenerator[dict, None]]:
         """
@@ -84,6 +88,10 @@ class Reactor:
         3. 执行ReAct循环
         4. 返回结果
         """
+        # 记录本次使用的模型配置（将传递到所有LLM调用）
+        self._llm_provider = provider
+        self._llm_model = model
+
         session_id = session_id or f"sess_{uuid.uuid4().hex[:12]}"
         start_time = time.time()
         
@@ -370,7 +378,9 @@ class Reactor:
                     messages=messages,
                     max_tokens=self.config.max_tokens,
                     temperature=self.config.temperature,
-                    tools=tools
+                    tools=tools,
+                    provider=self._llm_provider,
+                    model=self._llm_model
                 )
                 
                 # 记录LLM调用指标
@@ -425,7 +435,9 @@ class Reactor:
                 messages=messages,
                 max_tokens=self.config.max_tokens,
                 temperature=self.config.temperature,
-                tools=tools
+                tools=tools,
+                provider=self._llm_provider,
+                model=self._llm_model
             ):
                 if chunk["type"] == "content":
                     content_buffer.append(chunk["text"])
@@ -492,7 +504,9 @@ class Reactor:
                     messages=messages,
                     max_tokens=self.config.max_tokens,
                     temperature=self.config.temperature,
-                    tools=None  # 不再提供工具，强制 LLM 直接回复
+                    tools=None,  # 不再提供工具，强制 LLM 直接回复
+                    provider=self._llm_provider,
+                    model=self._llm_model
                 )
                 fallback_text = fallback_response.get("content", "")
                 if fallback_text:
